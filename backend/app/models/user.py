@@ -46,6 +46,7 @@ class User(Base, TimestampMixin):
     )
     notifications = relationship(
         "Notification",
+        foreign_keys="Notification.recipient_id",
         back_populates="recipient",
         cascade="all, delete-orphan",
     )

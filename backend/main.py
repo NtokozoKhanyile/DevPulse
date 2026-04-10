@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
@@ -6,6 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.redis import init_redis, close_redis
+from app.services.feed_service import subscribe_to_feed
+from app.websocket.manager import manager
 from app.routers import auth, users, projects, milestones, comments, collaborations, wall, feed
 
 
@@ -13,8 +16,18 @@ from app.routers import auth, users, projects, milestones, comments, collaborati
 async def lifespan(app: FastAPI) -> AsyncGenerator:
     # Startup
     await init_redis()
+    
+    # Start the global WebSocket relay task
+    relay_task = asyncio.create_task(manager.start_relay(subscribe_to_feed))
+    
     yield
     # Shutdown
+    relay_task.cancel()
+    try:
+        await relay_task
+    except asyncio.CancelledError:
+        pass
+        
     await close_redis()
 
 
@@ -50,6 +63,10 @@ def create_app() -> FastAPI:
     @app.get("/health", tags=["health"])
     async def health_check() -> dict:
         return {"status": "ok", "version": "1.0.0"}
+
+    @app.get("/")
+    async def read_root():
+        return {"message": "Hello World"}
 
     return app
 

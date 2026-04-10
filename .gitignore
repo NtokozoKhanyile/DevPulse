@@ -1,3 +1,6 @@
 .env.example
 .env
 devpulse_reviewer_agent_prompt.md
+TESTING_SUMMARY.md
+.github
+venv_linux/

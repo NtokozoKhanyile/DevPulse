@@ -43,15 +43,20 @@ async def get_user_projects(
     db: AsyncSession,
     owner_id: uuid.UUID,
     pagination: PageParams,
+    include_private: bool = False,
 ) -> list[Project]:
-    result = await db.execute(
-        select(Project)
-        .where(Project.owner_id == owner_id, Project.is_public == True)
-        .options(selectinload(Project.owner))
+    stmt = select(Project).where(Project.owner_id == owner_id)
+    
+    if not include_private:
+        stmt = stmt.where(Project.is_public == True)
+        
+    stmt = (
+        stmt.options(selectinload(Project.owner))
         .order_by(Project.created_at.desc())
         .offset(pagination.offset)
         .limit(pagination.limit)
     )
+    result = await db.execute(stmt)
     return list(result.scalars().all())
 
 
@@ -187,4 +192,4 @@ def assert_owner(project: Project, user_id: uuid.UUID) -> None:
     Call this before any mutating operation.
     """
     if project.owner_id != user_id:
-        raise ForbiddenException
+        raise ForbiddenException()

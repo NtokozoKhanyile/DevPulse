@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, UploadFile, File
+from app.dependencies.pagination import PageParams
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.dependencies.auth import get_current_user
-from app.dependencies.pagination import PageParams
+from app.dependencies.auth import get_current_user, get_current_user_optional
 from app.models import User
 from app.schemas.user import UserPublic, UserPrivate, UpdateProfileRequest
 from app.schemas.project import ProjectResponse
@@ -53,6 +53,10 @@ async def get_user_projects(
     username: str,
     pagination: PageParams = Depends(),
     db: AsyncSession = Depends(get_db),
+    current_user: User | None = Depends(get_current_user_optional),
 ) -> list:
     user = await user_service.get_user_by_username(db, username)
-    return await project_service.get_user_projects(db, user.id, pagination)
+    include_private = current_user is not None and current_user.id == user.id
+    return await project_service.get_user_projects(
+        db, user.id, pagination, include_private=include_private
+    )

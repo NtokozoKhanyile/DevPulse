@@ -1,3 +1,4 @@
+import uuid
 from fastapi import APIRouter, Depends, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -36,7 +37,6 @@ async def get_project(
     project_id: str,
     db: AsyncSession = Depends(get_db),
 ) -> ProjectResponse:
-    import uuid
     project = await project_service.get_public_project_by_id(db, uuid.UUID(project_id))
     await db.commit()
     return project
@@ -49,7 +49,6 @@ async def update_project(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ProjectResponse:
-    import uuid
     project = await project_service.get_project_by_id(db, uuid.UUID(project_id))
     project_service.assert_owner(project, current_user.id)
     project = await project_service.update_project(db, project, data)
@@ -64,7 +63,6 @@ async def delete_project(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> None:
-    import uuid
     project = await project_service.get_project_by_id(db, uuid.UUID(project_id))
     project_service.assert_owner(project, current_user.id)
     await project_service.delete_project(db, project)
@@ -77,7 +75,6 @@ async def complete_project(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ProjectResponse:
-    import uuid
     project = await project_service.get_project_by_id(db, uuid.UUID(project_id))
     project_service.assert_owner(project, current_user.id)
     project = await project_service.complete_project(db, project)
@@ -93,7 +90,6 @@ async def upload_cover(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ProjectResponse:
-    import uuid
     project = await project_service.get_project_by_id(db, uuid.UUID(project_id))
     project_service.assert_owner(project, current_user.id)
     url = await storage_service.upload_cover(project.id, file)

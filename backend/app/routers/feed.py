@@ -44,18 +44,11 @@ async def websocket_feed(
     await manager.connect(websocket)
 
     try:
-        # Spin up a dedicated Redis subscriber and relay every event to all clients
-        async def relay() -> None:
-            async for event in subscribe_to_feed():
-                await manager.broadcast(event)
-
-        relay_task = asyncio.create_task(relay())
-
         # Keep the connection alive — client can send pings, we just receive
         while True:
             await websocket.receive_text()
 
     except WebSocketDisconnect:
-        relay_task.cancel()
+        pass
     finally:
         await manager.disconnect(websocket)

@@ -33,6 +33,14 @@ class ConnectionManager:
         for ws in dead:
             await self.disconnect(ws)
 
+    async def start_relay(self, subscribe_func) -> None:
+        """
+        Background task that listens to Redis events and broadcasts them.
+        This should be started once at app startup.
+        """
+        async for event in subscribe_func():
+            await self.broadcast(event)
+
 
 # Singleton — imported by feed.py router and any future WebSocket consumers
 manager = ConnectionManager()

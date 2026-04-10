@@ -92,7 +92,7 @@ async def edit_comment(
         raise NotFoundException("Comment")
 
     if comment.author_id != current_user.id:
-        raise ForbiddenException
+        raise ForbiddenException()
 
     if comment.is_deleted:
         raise UnprocessableException("Cannot edit a deleted comment")
@@ -116,11 +116,15 @@ async def delete_comment(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> None:
+    # Load comment along with the project to check owner in one go if possible
+    # But current models have project as a relationship, so selectinload works.
     result = await db.execute(
-        select(Comment).where(
+        select(Comment)
+        .where(
             Comment.id == comment_id,
             Comment.project_id == project_id,
         )
+        .options(selectinload(Comment.project))
     )
     comment = result.scalar_one_or_none()
 
@@ -128,12 +132,11 @@ async def delete_comment(
         raise NotFoundException("Comment")
 
     # Author or project owner can soft delete
-    project = await project_service.get_project_by_id(db, project_id)
     is_author = comment.author_id == current_user.id
-    is_project_owner = project.owner_id == current_user.id
+    is_project_owner = comment.project.owner_id == current_user.id
 
     if not is_author and not is_project_owner:
-        raise ForbiddenException
+        raise ForbiddenException()
 
     # Soft delete: wipe body, flag as deleted
     comment.is_deleted = True

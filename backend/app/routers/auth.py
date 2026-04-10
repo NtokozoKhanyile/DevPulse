@@ -1,5 +1,8 @@
+import time
+from jose import JWTError
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.core.database import get_db
 from app.core.security import decode_token, create_access_token
@@ -10,9 +13,8 @@ from app.models import User
 from app.schemas.auth import RegisterRequest, LoginRequest, TokenResponse, RefreshRequest
 from app.services import auth_service
 
-from jose import JWTError
-
 router = APIRouter(tags=["auth"])
+
 
 # Rate limit: 10 attempts per IP per 15 minutes
 RATE_LIMIT_MAX = 10
@@ -52,7 +54,10 @@ async def login(
 
 
 @router.post("/refresh", response_model=TokenResponse)
-async def refresh(data: RefreshRequest) -> TokenResponse:
+async def refresh(
+    data: RefreshRequest,
+    db: AsyncSession = Depends(get_db),
+) -> TokenResponse:
     try:
         payload = decode_token(data.refresh_token)
 
@@ -64,12 +69,22 @@ async def refresh(data: RefreshRequest) -> TokenResponse:
         if blacklisted:
             raise CredentialsException
 
-        user_id: str = payload["sub"]
+        user_id_str: str = payload["sub"]
+        import uuid
+        user_id = uuid.UUID(user_id_str)
 
-    except (JWTError, KeyError):
+    except (JWTError, KeyError, ValueError):
         raise CredentialsException
 
-    new_access_token = create_access_token(user_id)
+    # Verify user still exists and is active
+    result = await db.execute(
+        select(User).where(User.id == user_id, User.is_active == True)
+    )
+    user = result.scalar_one_or_none()
+    if not user:
+        raise CredentialsException
+
+    new_access_token = create_access_token(str(user.id))
     return TokenResponse(
         access_token=new_access_token,
         refresh_token=data.refresh_token,
@@ -85,7 +100,6 @@ async def logout(
     try:
         payload = decode_token(data.refresh_token)
         exp: int = payload["exp"]
-        import time
         ttl = int(exp - time.time())
         if ttl > 0:
             await set_redis_value(f"blacklist:{data.refresh_token}", "1", ex=ttl)

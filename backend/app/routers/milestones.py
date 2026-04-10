@@ -2,10 +2,12 @@ import uuid
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.core.database import get_db
 from app.dependencies.auth import get_current_user
-from app.models import User
+from app.dependencies.pagination import PageParams
+from app.models import User, Milestone
 from app.schemas.milestone import CreateMilestoneRequest, MilestoneResponse
 from app.services import project_service
 
@@ -29,9 +31,17 @@ async def post_milestone(
 @router.get("/{project_id}/milestones", response_model=list[MilestoneResponse])
 async def list_milestones(
     project_id: uuid.UUID,
+    pagination: PageParams = Depends(),
     db: AsyncSession = Depends(get_db),
 ) -> list:
-    project = await project_service.get_project_by_id(db, project_id)
-    # Milestones are already eagerly loaded and ordered by created_at ASC
-    # via the relationship definition on the Project model
-    return project.milestones
+    # Confirm project exists
+    await project_service.get_project_by_id(db, project_id)
+
+    result = await db.execute(
+        select(Milestone)
+        .where(Milestone.project_id == project_id)
+        .order_by(Milestone.created_at.asc())
+        .offset(pagination.offset)
+        .limit(pagination.limit)
+    )
+    return list(result.scalars().all())
