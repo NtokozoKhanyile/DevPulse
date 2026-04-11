@@ -1,0 +1,1 @@
+export default function EditProject() { return <div className="p-8"><h1>Edit Project</h1></div> }

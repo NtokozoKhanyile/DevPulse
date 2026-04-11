@@ -1,0 +1,1 @@
+export default function Feed() { return <div className="p-8"><h1>Feed</h1></div> }

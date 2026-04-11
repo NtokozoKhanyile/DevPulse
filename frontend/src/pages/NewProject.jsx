@@ -1,0 +1,1 @@
+export default function NewProject() { return <div className="p-8"><h1>New Project</h1></div> }

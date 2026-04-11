@@ -1,0 +1,1 @@
+export default function CelebrationWall() { return <div className="p-8"><h1>Celebration Wall</h1></div> }
