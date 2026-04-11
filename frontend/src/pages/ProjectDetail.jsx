@@ -213,7 +213,7 @@ export default function ProjectDetail() {
           <div className="flex gap-3 flex-wrap">
             {project.repo_url && (
               
-                href={project.repo_url}
+            <a    href={project.repo_url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 text-sm text-text-body hover:text-brand-primary transition-colors"
@@ -223,7 +223,7 @@ export default function ProjectDetail() {
             )}
             {project.live_url && (
               
-                href={project.live_url}
+            <a    href={project.live_url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 text-sm text-text-body hover:text-brand-primary transition-colors"
